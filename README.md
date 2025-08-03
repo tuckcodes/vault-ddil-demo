@@ -6,11 +6,9 @@ The demo showcases how Vault provides a secure and resilient secrets management 
 
 ## 🚀 One-Click Launch
 
-1.  Click the "Code" button at the top of this repository.
-2.  Select the "Codespaces" tab.
-3.  Click "Create codespace on main".
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repo=tuckcodes/vault-ddil-demo)
 
-GitHub will automatically build the environment and launch all the necessary services. This may take a few minutes on the first run.
+Click the button above to launch the demo environment directly in a new Codespace. This may take a few minutes on the first run.
 
 ## How to Use the Demo
 
