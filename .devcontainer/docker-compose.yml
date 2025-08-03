@@ -6,7 +6,7 @@ services:
   # Vault Server: The in-theater security control plane.
   vault-server:
     # OPTIMIZATION: Switched to the lightweight Alpine version of the Vault image.
-    image: "hashicorp/vault:1.15-alpine"
+    image: "hashicorp/vault:1.20"
     container_name: "vault-server" # Give it a predictable name
     ports:
       - "8200:8200"
