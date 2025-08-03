@@ -22,7 +22,8 @@ jobs:
 
       # 2. Build and run the services in the background
       - name: Build and run services
-        run: docker-compose -f ./.devcontainer/docker-compose.yml up -d
+        # FIX: Use 'docker compose' (with a space) instead of 'docker-compose'
+        run: docker compose -f ./.devcontainer/docker-compose.yml up -d
 
       # 3. Wait for services to initialize
       - name: Wait for services
