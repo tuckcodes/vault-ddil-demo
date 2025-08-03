@@ -3,12 +3,13 @@
 {
   "name": "Vault Tactical Edge Demo",
 
-  // Use a specific, lightweight image for Node.js development.
-  // This is much smaller than the 'universal' image.
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:18",
+  // Use a pre-built 'universal' image from Microsoft.
+  // It includes Docker, Docker Compose, Node.js, and many other common tools,
+  // which simplifies our setup significantly and is more robust.
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
 
   "features": {
-    // We only need to add the Docker-in-Docker feature, as Node.js is already in the base image.
+    // This feature ensures the Docker daemon is running inside our Codespace.
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
 
@@ -27,7 +28,7 @@
   // This command runs after the Codespace is created.
   // It starts all services with Docker Compose, waits for Vault to initialize,
   // and then runs the setup script.
-  "postCreateCommand": "docker-compose -f ./.devcontainer/docker-compose.yml up -d && sleep 10 && bash ./.devcontainer/setup-vault.sh",
+  "postCreateCommand": "docker compose -f ./.devcontainer/docker-compose.yml up -d && sleep 10 && bash ./.devcontainer/setup-vault.sh",
 
   // A setting to prevent the container from exiting after the postCreateCommand.
   "overrideCommand": false
