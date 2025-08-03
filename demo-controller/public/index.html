@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault Tactical Edge Demo (Live)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .map-container {
+            background-image: url('https://images.unsplash.com/photo-1568623229237-072211de2cb2?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover; background-position: center; position: relative;
+        }
+        .vehicle-icon { transition: all 0.3s ease-in-out; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+        .status-sealed { animation: blink 1s linear infinite; }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); } }
+        .status-unsealed { animation: pulse 2s infinite; }
+    </style>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="h-full text-gray-200">
+    <div id="app" class="flex flex-col h-screen">
+        <header class="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <h1 class="text-xl font-bold text-white">Live Vault Tactical Demo</h1>
+            </div>
+        </header>
+        <main class="flex-1 flex overflow-hidden">
+            <div class="flex-1 map-container border-r border-gray-700" id="map">
+                <div id="vault-server-icon" class="vehicle-icon absolute w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-sm shadow-lg transform -translate-x-1/2 -translate-y-1/2" style="left: 50%; top: 50%;">Vault</div>
+                <div class="vehicle-icon absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-gray-500 border-gray-300" style="left: 30%; top: 35%;">S-1</div>
+                <div class="vehicle-icon absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-gray-500 border-gray-300" style="left: 70%; top: 35%;">S-2</div>
+                <div class="vehicle-icon absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-gray-500 border-gray-300" style="left: 50%; top: 75%;">S-3</div>
+            </div>
+            <aside class="w-1/3 bg-gray-900 flex flex-col p-4 space-y-4 overflow-y-auto">
+                <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-semibold text-white mb-4">Live Demo Control</h2>
+                    <div class="space-y-3">
+                        <button id="seal-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center space-x-2">
+                            <i data-lucide="lock" class="w-5 h-5"></i>
+                            <span>Scenario 1: Seal Vault Server</span>
+                        </button>
+                        <button id="leak-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center space-x-2">
+                            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                            <span>Scenario 2: Insider Threat & Leak</span>
+                        </button>
+                         <button id="unseal-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center space-x-2">
+                            <i data-lucide="unlock" class="w-5 h-5"></i>
+                            <span>Action: Unseal Vault</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col">
+                    <h2 class="text-lg font-semibold text-white mb-2">Live Event Log</h2>
+                    <div id="event-log" class="flex-1 bg-black/50 rounded-md p-2 overflow-y-auto font-mono text-sm space-y-2"></div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            const eventLog = document.getElementById('event-log');
+            const sealBtn = document.getElementById('seal-btn');
+            const unsealBtn = document.getElementById('unseal-btn');
+            const leakBtn = document.getElementById('leak-btn');
+            const vaultServerIcon = document.getElementById('vault-server-icon');
+            let leakedToken = null;
+
+            const logEvent = (message, type = 'info') => {
+                const colors = { info: 'text-cyan-400', success: 'text-green-400', warn: 'text-yellow-400', danger: 'text-red-400' };
+                const icons = { info: 'info', success: 'check-circle', warn: 'alert-triangle', danger: 'shield-alert' };
+                const logEntry = document.createElement('div');
+                logEntry.className = `flex items-start space-x-2 ${colors[type]}`;
+                logEntry.innerHTML = `<i data-lucide="${icons[type]}" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span><span class="font-bold">${new Date().toLocaleTimeString()}:</span> ${message}</span>`;
+                eventLog.prepend(logEntry);
+                lucide.createIcons();
+            };
+
+            const callApi = async (endpoint, method = 'POST', body = null) => {
+                try {
+                    const options = { 
+                        method,
+                        headers: { 'Content-Type': 'application/json' }
+                    };
+                    if (body) {
+                        options.body = JSON.stringify(body);
+                    }
+                    const response = await fetch(`http://localhost:8080/api/actions/${endpoint}`, options);
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || 'API call failed');
+                    logEvent(result.message, 'success');
+                    return result;
+                } catch (error) {
+                    logEvent(`Error: ${error.message}`, 'danger');
+                    return null;
+                }
+            };
+            
+            const updateUI = (state) => {
+                const isSealed = state.vault_server.status === 'sealed';
+                vaultServerIcon.classList.toggle('bg-blue-600', !isSealed);
+                vaultServerIcon.classList.toggle('border-blue-300', !isSealed);
+                vaultServerIcon.classList.toggle('status-unsealed', !isSealed);
+                vaultServerIcon.classList.toggle('bg-red-600', isSealed);
+                vaultServerIcon.classList.toggle('border-red-400', isSealed);
+                vaultServerIcon.classList.toggle('status-sealed', isSealed);
+            };
+
+            const checkState = async () => {
+                try {
+                    const response = await fetch('http://localhost:8080/api/state');
+                    const state = await response.json();
+                    updateUI(state);
+                } catch (error) {
+                    // This is expected if the server is down, so we don't spam the log
+                    // logEvent('Cannot connect to demo controller. Is the environment running?', 'danger');
+                }
+            };
+
+            sealBtn.addEventListener('click', () => {
+                logEvent('Executing Scenario: Seal Vault Server', 'warn');
+                callApi('seal-vault');
+            });
+            
+            unsealBtn.addEventListener('click', () => {
+                logEvent('Action: Unsealing Vault Server', 'warn');
+                callApi('unseal-vault');
+            });
+
+            leakBtn.addEventListener('click', async () => {
+                logEvent('Executing Scenario: Insider Threat & Leak', 'warn');
+                const result = await callApi('leak-secret');
+                if (result && result.leakedSecret) {
+                    logEvent(`An insider has leaked a secret: <span class="font-mono text-red-400">${result.leakedSecret}</span>`, 'danger');
+                    leakedToken = result.userToken;
+                    
+                    setTimeout(async () => {
+                        logEvent('Admin is now revoking the leaked token to contain the threat...', 'warn');
+                        await callApi('revoke-secret', 'POST', { token: leakedToken });
+                    }, 3000);
+                }
+            });
+
+            logEvent('Live Demo GUI Initialized. Connecting to local backend...', 'info');
+            setInterval(checkState, 2000); // Poll for state every 2 seconds
+        });
+    </script>
+</body>
+</html>

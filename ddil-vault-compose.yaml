@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  vault-server:
+    image: vault:latest
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    command: server
+
+  demo-controller:
+    build:
+      context: ./demo-controller
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  stryker-1:
+    image: vault:latest
+    depends_on:
+      - vault-server
+    command: agent -config=/vault/config/agent-config.hcl
+    volumes:
+      - ./agent-config:/vault/config
+
+  stryker-2:
+    image: vault:latest
+    depends_on:
+      - vault-server
+    command: agent -config=/vault/config/agent-config.hcl
+    volumes:
+      - ./agent-config:/vault/config
+
+  stryker-3:
+    image: vault:latest
+    depends_on:
+      - vault-server
+    command: agent -config=/vault/config/agent-config.hcl
+    volumes:
+      - ./agent-config:/vault/config
