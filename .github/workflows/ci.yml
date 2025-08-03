@@ -1,5 +1,5 @@
 # .github/workflows/ci.yml
-# This workflow builds the demo environment and runs health checks.
+# This workflow tests the local demo setup process.
 
 name: Continuous Integration
 
@@ -20,19 +20,21 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # 2. Build and run the services in the background
-      - name: Build and run services
-        # FIX: Use 'docker compose' (with a space) instead of 'docker-compose'
-        run: docker compose -f ./.devcontainer/docker-compose.yml up -d
+      # 2. Make the run script executable
+      - name: Make script executable
+        run: chmod +x run-demo.sh
 
-      # 3. Wait for services to initialize
-      - name: Wait for services
-        run: sleep 15
+      # 3. Run the setup script
+      # This script now handles building, starting, and configuring the containers.
+      - name: Run setup script
+        run: ./run-demo.sh
 
-      # 4. Check if the Web GUI is responding
+      # 4. Health Check - Web GUI
+      # This confirms the demo-controller started and is serving the webpage.
       - name: Health Check - Web GUI
         run: curl --fail http://localhost:8080
 
-      # 5. Check if the Vault server is healthy
+      # 5. Health Check - Vault Server
+      # This confirms the Vault server is running and unsealed.
       - name: Health Check - Vault Server
         run: curl --fail http://localhost:8200/v1/sys/health

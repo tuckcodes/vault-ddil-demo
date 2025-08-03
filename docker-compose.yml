@@ -1,13 +1,10 @@
-# .devcontainer/docker-compose.yml
-# This file defines the services for the demo application.
-# It's launched by the 'postCreateCommand' in devcontainer.json.
+# This file defines the services for the local demo environment.
 
 services:
   # Vault Server: The in-theater security control plane.
   vault-server:
-    # OPTIMIZATION: Switched to the lightweight Alpine version of the Vault image.
     image: "hashicorp/vault:1.20"
-    container_name: "vault-server" # Give it a predictable name
+    container_name: "vault-server-demo"
     ports:
       - "8200:8200"
     environment:
@@ -20,18 +17,19 @@ services:
   # Demo Controller: The Node.js API and Web GUI server.
   demo-controller:
     build:
-      context: ../demo-controller # Point to the Node.js app directory
+      context: ./demo-controller
     ports:
       - "8080:8080"
-    # Mount the docker socket to allow this container to execute commands on other containers.
+    # SECURITY NOTE: Mounting the Docker socket is a security risk and is done here
+    # only to allow the demo controller to trigger administrative actions on the
+    # Vault container for the interactive scenarios.
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    # Depends on vault-server to ensure Vault starts first.
     depends_on:
       - vault-server
 
   # Stryker Agent: A placeholder representing a vehicle agent.
   stryker-agent-1:
     image: "alpine:latest"
-    # Keep the container running.
+    # Keep the container running indefinitely.
     command: tail -f /dev/null
