@@ -1,4 +1,4 @@
-# This file defines the services for the local demo environment.
+# This file defines and orchestrates all services for the local demo environment.
 
 services:
   # Vault Server: The in-theater security control plane.
@@ -8,11 +8,16 @@ services:
     ports:
       - "8200:8200"
     environment:
-      # Run in dev mode for simplicity. Auto-unseals.
       VAULT_DEV_ROOT_TOKEN_ID: "root"
       VAULT_ADDR: "http://0.0.0.0:8200"
     cap_add:
       - IPC_LOCK
+    # The healthcheck ensures that other services don't start until Vault is unsealed and ready.
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   # Demo Controller: The Node.js API and Web GUI server.
   demo-controller:
@@ -26,10 +31,20 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - vault-server
+      vault-server:
+        condition: service_healthy
 
   # Stryker Agent: A placeholder representing a vehicle agent.
   stryker-agent-1:
     image: "alpine:latest"
-    # Keep the container running indefinitely.
     command: tail -f /dev/null
+
+  # This service runs once to configure Vault and then exits.
+  vault-configurator:
+    build:
+      context: ./vault-configurator
+    depends_on:
+      vault-server:
+        condition: service_healthy
+    # This service communicates with vault-server over the internal Docker network
+    # and does not need to expose any ports.
