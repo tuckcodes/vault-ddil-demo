@@ -1,0 +1,37 @@
+# .github/workflows/ci.yml
+# This workflow builds the demo environment and runs health checks.
+
+name: Continuous Integration
+
+# Trigger the workflow on pushes and pull requests to the main branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    # Use the latest version of Ubuntu to run the job
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repository code
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # 2. Build and run the services in the background
+      - name: Build and run services
+        run: docker-compose -f ./.devcontainer/docker-compose.yml up -d
+
+      # 3. Wait for services to initialize
+      - name: Wait for services
+        run: sleep 15
+
+      # 4. Check if the Web GUI is responding
+      - name: Health Check - Web GUI
+        run: curl --fail http://localhost:8080
+
+      # 5. Check if the Vault server is healthy
+      - name: Health Check - Vault Server
+        run: curl --fail http://localhost:8200/v1/sys/health

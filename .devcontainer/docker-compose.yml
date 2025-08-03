@@ -1,20 +1,13 @@
 # .devcontainer/docker-compose.yml
-# This file defines the services for the demo.
+# This file defines the services for the demo application.
+# It's launched by the 'postCreateCommand' in devcontainer.json.
 
 version: '3.8'
 services:
-  # The main service for the dev container itself
-  demo:
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
-    volumes:
-      - ..:/workspaces/vault-tactical-edge-demo:cached
-    command: sleep infinity
-
   # Vault Server: The in-theater security control plane.
   vault-server:
     image: "hashicorp/vault:1.15"
+    container_name: "vault-server" # Give it a predictable name
     ports:
       - "8200:8200"
     environment:
