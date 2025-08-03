@@ -1,0 +1,44 @@
+# .devcontainer/docker-compose.yml
+# This file defines the services for the demo.
+
+version: '3.8'
+services:
+  # The main service for the dev container itself
+  demo:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces/vault-tactical-edge-demo:cached
+    command: sleep infinity
+
+  # Vault Server: The in-theater security control plane.
+  vault-server:
+    image: "hashicorp/vault:1.15"
+    ports:
+      - "8200:8200"
+    environment:
+      # Run in dev mode for simplicity. Auto-unseals.
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_ADDR: "http://0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK
+
+  # Demo Controller: The Node.js API and Web GUI server.
+  demo-controller:
+    build:
+      context: ../demo-controller # Point to the Node.js app directory
+    ports:
+      - "8080:8080"
+    # Mount the docker socket to allow this container to execute commands on other containers.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # Depends on vault-server to ensure Vault starts first.
+    depends_on:
+      - vault-server
+
+  # Stryker Agent: A placeholder representing a vehicle agent.
+  stryker-agent-1:
+    image: "alpine:latest"
+    # Keep the container running.
+    command: tail -f /dev/null

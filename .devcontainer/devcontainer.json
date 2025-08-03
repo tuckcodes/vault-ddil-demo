@@ -1,0 +1,42 @@
+// .devcontainer/devcontainer.json
+// This file configures the GitHub Codespace environment.
+{
+  "name": "Vault Tactical Edge Demo",
+  // Use the Docker-in-Docker feature to allow the dev container to run other Docker containers.
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    }
+  },
+
+  // Forward the ports for the web GUI and the Vault UI.
+  // The "label" will appear in the VS Code "Ports" tab.
+  "forwardPorts": [8080, 8200],
+  "portsAttributes": {
+    "8080": {
+      "label": "Demo GUI",
+      "onAutoForward": "openBrowser"
+    },
+    "8200": {
+      "label": "Vault UI"
+    }
+  },
+
+  // Tell devcontainer to run docker-compose.yml on startup.
+  // The `-d` flag runs it in detached mode.
+  "runServices": [
+    "demo"
+  ],
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "demo",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+
+  // After the containers are created, run the setup script to configure Vault.
+  // The sleep command gives the Vault container a moment to initialize before we try to configure it.
+  "postCreateCommand": "sleep 10 && bash ./.devcontainer/setup-vault.sh"
+}
