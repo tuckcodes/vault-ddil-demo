@@ -2,11 +2,11 @@
 # This file defines the services for the demo application.
 # It's launched by the 'postCreateCommand' in devcontainer.json.
 
-version: '3.8'
 services:
   # Vault Server: The in-theater security control plane.
   vault-server:
-    image: "hashicorp/vault:1.15"
+    # OPTIMIZATION: Switched to the lightweight Alpine version of the Vault image.
+    image: "hashicorp/vault:1.15-alpine"
     container_name: "vault-server" # Give it a predictable name
     ports:
       - "8200:8200"
