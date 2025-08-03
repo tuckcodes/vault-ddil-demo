@@ -2,41 +2,35 @@
 // This file configures the GitHub Codespace environment.
 {
   "name": "Vault Tactical Edge Demo",
-  // Use the Docker-in-Docker feature to allow the dev container to run other Docker containers.
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  // Use a pre-built 'universal' image from Microsoft.
+  // It includes Docker, Docker Compose, Node.js, and many other common tools,
+  // which simplifies our setup significantly.
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "version": "latest"
-    },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "18"
-    }
+    // This feature ensures the Docker daemon is running inside our Codespace.
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
 
   // Forward the ports for the web GUI and the Vault UI.
-  // The "label" will appear in the VS Code "Ports" tab.
   "forwardPorts": [8080, 8200],
   "portsAttributes": {
     "8080": {
       "label": "Demo GUI",
-      "onAutoForward": "openBrowser"
+      "onAutoForward": "openBrowserWhenReady"
     },
     "8200": {
       "label": "Vault UI"
     }
   },
 
-  // Tell devcontainer to run docker-compose.yml on startup.
-  // The `-d` flag runs it in detached mode.
-  "runServices": [
-    "demo"
-  ],
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "demo",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  // This is the main fix.
+  // 'postCreateCommand' runs after the Codespace container is created.
+  // We use it to explicitly start all services with Docker Compose, wait 10 seconds
+  // for Vault to initialize, and then run our setup script.
+  "postCreateCommand": "docker-compose -f ./.devcontainer/docker-compose.yml up -d && sleep 10 && bash ./.devcontainer/setup-vault.sh",
 
-
-  // After the containers are created, run the setup script to configure Vault.
-  // The sleep command gives the Vault container a moment to initialize before we try to configure it.
-  "postCreateCommand": "sleep 10 && bash ./.devcontainer/setup-vault.sh"
+  // A setting to prevent the container from exiting after the postCreateCommand.
+  "overrideCommand": false
 }
