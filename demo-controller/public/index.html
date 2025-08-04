@@ -9,55 +9,141 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .map-container {
-            background-image: url('https://images.unsplash.com/photo-1568623229237-072211de2cb2?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover; background-position: center; position: relative;
+            background-image: url('images/1.jpg');
+            background-color: #1f2937;
+            background-size: cover; 
+            background-position: center; 
+            position: relative;
         }
-        .vehicle-icon { transition: all 0.3s ease-in-out; }
+        .asset-icon { 
+            transition: all 0.3s ease-in-out; 
+            position: absolute;
+            transform: translate(-50%, -50%);
+        }
+        /* Tooltip styles */
+        .asset-icon .tooltip {
+            visibility: hidden;
+            width: 160px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position the tooltip above the icon */
+            left: 50%;
+            margin-left: -80px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .asset-icon:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
         @keyframes blink { 50% { opacity: 0.3; } }
-        .status-sealed { animation: blink 1s linear infinite; }
-        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); } }
-        .status-unsealed { animation: pulse 2s infinite; }
+        .status-disconnected { animation: blink 1s linear infinite; }
+        
+        @keyframes pulse-green { 0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); } }
+        .status-connected { animation: pulse-green 2s infinite; }
+
+        @keyframes pulse-yellow { 0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); } }
+        .status-loading { animation: pulse-yellow 2s infinite; }
+        
+        .terminal { font-family: 'Roboto Mono', monospace; }
+        .terminal-cursor {
+            display: inline-block;
+            background-color: #4ade80;
+            animation: blink 1s step-end infinite;
+        }
     </style>
      <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
 </head>
 <body class="h-full text-gray-200">
     <div id="app" class="flex flex-col h-screen">
         <header class="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                <h1 class="text-xl font-bold text-white">Live Vault Tactical Demo</h1>
+                <h1 class="text-xl font-bold text-white">Project Stryker: Resilience at the Edge</h1>
             </div>
         </header>
         <main class="flex-1 flex overflow-hidden">
             <div class="flex-1 map-container border-r border-gray-700" id="map">
-                <div id="vault-server-icon" class="vehicle-icon absolute w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-sm shadow-lg transform -translate-x-1/2 -translate-y-1/2" style="left: 50%; top: 50%;">Vault</div>
-                <div class="vehicle-icon absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-gray-500 border-gray-300" style="left: 30%; top: 35%;">S-1</div>
-                <div class="vehicle-icon absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-gray-500 border-gray-300" style="left: 70%; top: 35%;">S-2</div>
-                <div class="vehicle-icon absolute w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-gray-500 border-gray-300" style="left: 50%; top: 75%;">S-3</div>
+                <!-- Command Echelon (North) -->
+                <div id="vault-server-icon" class="asset-icon w-14 h-14 rounded-md flex items-center justify-center font-bold text-white text-sm shadow-lg bg-yellow-500 border-yellow-400 status-loading" style="left: 50%; top: 10%;">
+                    RHHT
+                    <span class="tooltip">Regimental HHT<br>(Vault Server Replica)</span>
+                </div>
+                <div class="asset-icon w-12 h-12 rounded-md flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-500 border-gray-300" style="left: 35%; top: 12%;">
+                    FAS
+                    <span class="tooltip">Field Artillery Squadron</span>
+                </div>
+                <div class="asset-icon w-12 h-12 rounded-md flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-500 border-gray-300" style="left: 65%; top: 12%;">
+                    RSS
+                    <span class="tooltip">Regimental Support Squadron</span>
+                </div>
+
+                <!-- Screen/Guard Echelon (Forward of Command) -->
+                <div class="asset-icon w-12 h-12 rounded-md flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-500 border-gray-300" style="left: 50%; top: 30%;">
+                    4/2 HHT
+                    <span class="tooltip">4th Squadron (Scouts) HHT</span>
+                </div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 40%; top: 40%;">N</div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 60%; top: 40%;">O</div>
+
+                <!-- Main Body Echelon (South) -->
+                <!-- Left Flank -->
+                <div class="asset-icon w-12 h-12 rounded-md flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-500 border-gray-300" style="left: 25%; top: 60%;">
+                    1/2 HHT
+                    <span class="tooltip">1st Squadron HHT</span>
+                </div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 15%; top: 75%;">A</div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 35%; top: 75%;">B</div>
+                
+                <!-- Center Flank -->
+                <div class="asset-icon w-12 h-12 rounded-md flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-500 border-gray-300" style="left: 50%; top: 70%;">
+                    2/2 HHT
+                    <span class="tooltip">2nd Squadron HHT</span>
+                </div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 45%; top: 85%;">E</div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 55%; top: 85%;">F</div>
+
+                <!-- Right Flank -->
+                <div class="asset-icon w-12 h-12 rounded-md flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-500 border-gray-300" style="left: 75%; top: 60%;">
+                    3/2 HHT
+                    <span class="tooltip">3rd Squadron HHT</span>
+                </div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 65%; top: 75%;">I</div>
+                <div class="asset-icon w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-lg bg-gray-600 border-gray-400" style="left: 85%; top: 75%;">K</div>
+
             </div>
-            <aside class="w-1/3 bg-gray-900 flex flex-col p-4 space-y-4 overflow-y-auto">
+            <aside class="w-1/2 bg-gray-900 flex flex-col p-4 space-y-4 overflow-y-auto">
                 <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                    <h2 class="text-lg font-semibold text-white mb-4">Live Demo Control</h2>
-                    <div class="space-y-3">
-                        <button id="seal-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center space-x-2">
-                            <i data-lucide="lock" class="w-5 h-5"></i>
-                            <span>Scenario 1: Seal Vault Server</span>
-                        </button>
-                        <button id="leak-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center space-x-2">
-                            <i data-lucide="shield-alert" class="w-5 h-5"></i>
-                            <span>Scenario 2: Insider Threat & Leak</span>
-                        </button>
-                         <button id="unseal-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center space-x-2">
-                            <i data-lucide="unlock" class="w-5 h-5"></i>
-                            <span>Action: Unseal Vault</span>
+                    <h2 class="text-lg font-semibold text-white mb-4">Mission Control</h2>
+                    <div id="mission-status" class="space-y-2 text-sm mb-4">
+                        <div><span class="font-bold text-gray-400">HCP Vault Connection:</span> <span id="hcp-status" class="text-yellow-400">CONNECTING...</span></div>
+                        <div><span class="font-bold text-gray-400">Local Replica Status:</span> <span id="replica-status" class="text-yellow-400">INITIALIZING...</span></div>
+                    </div>
+                    <div id="story-panel" class="space-y-3">
+                        <p id="story-text" class="text-gray-300">Establishing connection to the demo backend...</p>
+                        <button id="story-btn" class="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center space-x-2 opacity-50 cursor-not-allowed" disabled>
+                            <span>Connecting...</span>
                         </button>
                     </div>
                 </div>
-                <div class="flex-1 bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col">
-                    <h2 class="text-lg font-semibold text-white mb-2">Live Event Log</h2>
-                    <div id="event-log" class="flex-1 bg-black/50 rounded-md p-2 overflow-y-auto font-mono text-sm space-y-2"></div>
+                <div class="flex-1 bg-black p-4 rounded-lg border border-gray-700 flex flex-col terminal">
+                    <h2 class="text-lg font-semibold text-green-400 mb-2">Live Terminal Feed</h2>
+                    <div id="terminal-log" class="flex-1 overflow-y-auto space-y-1 text-sm">
+                        <div class="text-gray-400">Initializing terminal...</div>
+                    </div>
+                    <div class="mt-2 flex items-center">
+                        <span class="text-green-400">command-post:~$</span>
+                        <div class="terminal-cursor w-2 h-4 ml-1"></div>
+                    </div>
                 </div>
             </aside>
         </main>
@@ -67,90 +153,136 @@
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
 
-            const eventLog = document.getElementById('event-log');
-            const sealBtn = document.getElementById('seal-btn');
-            const unsealBtn = document.getElementById('unseal-btn');
-            const leakBtn = document.getElementById('leak-btn');
+            const terminalLog = document.getElementById('terminal-log');
+            const storyBtn = document.getElementById('story-btn');
+            const storyText = document.getElementById('story-text');
+            const hcpStatus = document.getElementById('hcp-status');
+            const replicaStatus = document.getElementById('replica-status');
             const vaultServerIcon = document.getElementById('vault-server-icon');
+            
+            let storyState = 0;
             let leakedToken = null;
 
-            const logEvent = (message, type = 'info') => {
-                const colors = { info: 'text-cyan-400', success: 'text-green-400', warn: 'text-yellow-400', danger: 'text-red-400' };
-                const icons = { info: 'info', success: 'check-circle', warn: 'alert-triangle', danger: 'shield-alert' };
+            const logToTerminal = (text, prompt = 'system@log:~$') => {
                 const logEntry = document.createElement('div');
-                logEntry.className = `flex items-start space-x-2 ${colors[type]}`;
-                logEntry.innerHTML = `<i data-lucide="${icons[type]}" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span><span class="font-bold">${new Date().toLocaleTimeString()}:</span> ${message}</span>`;
-                eventLog.prepend(logEntry);
-                lucide.createIcons();
+                const sanitizedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                logEntry.innerHTML = `<span class="text-green-400">${prompt}</span> <span class="text-gray-300">${sanitizedText.replace(/\n/g, '<br>')}</span>`;
+                terminalLog.appendChild(logEntry);
+                terminalLog.scrollTop = terminalLog.scrollHeight;
             };
 
-            const callApi = async (endpoint, method = 'POST', body = null) => {
+            const callApi = async (endpoint) => {
                 try {
-                    const options = { 
-                        method,
-                        headers: { 'Content-Type': 'application/json' }
-                    };
-                    if (body) {
-                        options.body = JSON.stringify(body);
+                    const response = await fetch(`/api/story/${endpoint}`, { method: 'POST' });
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.message || 'API call failed');
                     }
-                    const response = await fetch(`http://localhost:8080/api/actions/${endpoint}`, options);
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.message || 'API call failed');
-                    logEvent(result.message, 'success');
-                    return result;
+                    return await response.json();
                 } catch (error) {
-                    logEvent(`Error: ${error.message}`, 'danger');
+                    logToTerminal(`Error: ${error.message}`, 'error@system:~$');
                     return null;
                 }
             };
-            
-            const updateUI = (state) => {
-                const isSealed = state.vault_server.status === 'sealed';
-                vaultServerIcon.classList.toggle('bg-blue-600', !isSealed);
-                vaultServerIcon.classList.toggle('border-blue-300', !isSealed);
-                vaultServerIcon.classList.toggle('status-unsealed', !isSealed);
-                vaultServerIcon.classList.toggle('bg-red-600', isSealed);
-                vaultServerIcon.classList.toggle('border-red-400', isSealed);
-                vaultServerIcon.classList.toggle('status-sealed', isSealed);
-            };
 
-            const checkState = async () => {
-                try {
-                    const response = await fetch('http://localhost:8080/api/state');
-                    const state = await response.json();
-                    updateUI(state);
-                } catch (error) {
-                    // This is expected if the server is down, so we don't spam the log
-                    // logEvent('Cannot connect to demo controller. Is the environment running?', 'danger');
+            const advanceStory = async () => {
+                storyBtn.disabled = true;
+                storyBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                switch (storyState) {
+                    case 0: // Disconnect
+                        storyText.innerText = "Simulating a DDIL event. The local Vault replica must now operate independently.";
+                        logToTerminal("Simulating SATCOM disconnection...", "security-ops@rhht-cp:~$");
+                        await callApi('disconnect');
+                        hcpStatus.innerText = 'DISCONNECTED';
+                        hcpStatus.className = 'text-red-400';
+                        replicaStatus.innerText = 'OPERATING INDEPENDENTLY';
+                        replicaStatus.className = 'text-yellow-400';
+                        vaultServerIcon.className = 'asset-icon w-14 h-14 rounded-md flex items-center justify-center font-bold text-white text-sm shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-red-600 border-red-400 status-disconnected';
+                        logToTerminal("CRITICAL: Uplink to HCP Vault lost. Switching to local replica for all secrets operations. All tactical assets remain fully functional.");
+                        storyBtn.innerHTML = `<span>2. Infiltrate Network as Insider</span>`;
+                        storyState = 1;
+                        break;
+
+                    case 1: // Login as Insider
+                        storyText.innerText = "An adversary has gained access and is attempting to steal secrets from a Stryker (2/2 HHT).";
+                        const loginResult = await callApi('login');
+                        if (loginResult) {
+                            logToTerminal(loginResult.command, 'attacker@2-2-hht:~$');
+                            logToTerminal(loginResult.output, '');
+                            leakedToken = loginResult.token;
+                            storyBtn.innerHTML = `<span>3. Exfiltrate Classified API Key</span>`;
+                            storyState = 2;
+                        }
+                        break;
+
+                    case 2: // Steal Secret
+                        storyText.innerText = "The adversary has exfiltrated the secret. The security team must now respond.";
+                        const stealResult = await callApi('steal');
+                        if (stealResult) {
+                            logToTerminal(stealResult.command, 'attacker@2-2-hht:~$');
+                            logToTerminal(stealResult.output.replace(/(C9A3-B7E1-A4D6-8B3F)/, '<span class="text-red-500 font-bold">$1</span>'), '');
+                            storyBtn.innerHTML = `<span>CONTAINMENT IN PROGRESS...</span>`;
+                            
+                            setTimeout(() => {
+                                logToTerminal("ALERT: Anomalous secret access by user 'insider' detected via local audit logs.", "security-ops@rhht-cp:~$");
+                                logToTerminal(`Executing: vault token revoke ${leakedToken}`, "security-ops@rhht-cp:~$");
+                                logToTerminal("SUCCESS: Compromised token has been revoked. Threat contained locally.");
+                                storyBtn.innerHTML = `<span>4. Re-establish SATCOM Link</span>`;
+                                storyState = 3;
+                                storyBtn.disabled = false;
+                                storyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            }, 3000);
+                        }
+                        break;
+
+                    case 3: // Reconnect
+                        storyText.innerText = "Connection restored. Local audit logs are now being synchronized with the central HCP Vault cluster.";
+                        logToTerminal("Re-establishing SATCOM link...", "comms-officer@rhht-cp:~$");
+                        await callApi('reconnect');
+                        hcpStatus.innerText = 'LIVE (TRX R2 Link)';
+                        hcpStatus.className = 'text-green-400';
+                        replicaStatus.innerText = 'RE-SYNCING AUDIT LOGS';
+                        replicaStatus.className = 'text-yellow-400';
+                        vaultServerIcon.className = 'asset-icon w-14 h-14 rounded-md flex items-center justify-center font-bold text-white text-sm shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-green-600 border-green-400 status-connected';
+                        logToTerminal("INFO: Connection to HCP Vault re-established. All local audit logs, including the insider threat incident and token revocation, are now being replicated back to the primary cluster. Central command has a complete, unified view of the event.");
+                        storyBtn.innerHTML = `<span>MISSION COMPLETE</span>`;
+                        storyState = 4;
+                        break;
+                }
+
+                if (storyState !== 2 && storyState !== 4) {
+                    storyBtn.disabled = false;
+                    storyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             };
 
-            sealBtn.addEventListener('click', () => {
-                logEvent('Executing Scenario: Seal Vault Server', 'warn');
-                callApi('seal-vault');
-            });
-            
-            unsealBtn.addEventListener('click', () => {
-                logEvent('Action: Unsealing Vault Server', 'warn');
-                callApi('unseal-vault');
-            });
+            const initializeDemo = () => {
+                const interval = setInterval(async () => {
+                    try {
+                        const response = await fetch('/api/health');
+                        if (response.ok) {
+                            clearInterval(interval);
+                            logToTerminal("Connection to demo backend established.");
+                            storyText.innerText = "The battle cloud is fully connected to the HCP Vault primary. All systems are nominal.";
+                            hcpStatus.innerText = 'LIVE (TRX R2 Link)';
+                            hcpStatus.className = 'text-green-400';
+                            replicaStatus.innerText = 'SYNCHRONIZED';
+                            replicaStatus.className = 'text-green-400';
+                            vaultServerIcon.className = 'asset-icon w-14 h-14 rounded-md flex items-center justify-center font-bold text-white text-sm shadow-lg transform -translate-x-1/2 -translate-y-1/2 bg-green-600 border-green-400 status-connected';
+                            storyBtn.innerHTML = `<span>1. Simulate SATCOM Disconnection</span>`;
+                            storyBtn.disabled = false;
+                            storyBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-600');
+                            storyBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        }
+                    } catch (error) {
+                        // Keep trying
+                    }
+                }, 2000);
+            };
 
-            leakBtn.addEventListener('click', async () => {
-                logEvent('Executing Scenario: Insider Threat & Leak', 'warn');
-                const result = await callApi('leak-secret');
-                if (result && result.leakedSecret) {
-                    logEvent(`An insider has leaked a secret: <span class="font-mono text-red-400">${result.leakedSecret}</span>`, 'danger');
-                    leakedToken = result.userToken;
-                    
-                    setTimeout(async () => {
-                        logEvent('Admin is now revoking the leaked token to contain the threat...', 'warn');
-                        await callApi('revoke-secret', 'POST', { token: leakedToken });
-                    }, 3000);
-                }
-            });
-
-            logEvent('Live Demo GUI Initialized. Connecting to local backend...', 'info');
-            setInterval(checkState, 2000); // Poll for state every 2 seconds
+            storyBtn.addEventListener('click', advanceStory);
+            initializeDemo();
         });
     </script>
 </body>

@@ -1,102 +1,100 @@
+// This is the Node.js server for the demo controller.
+// It serves the web GUI and provides an API to interact with the Docker containers.
+
 const express = require('express');
+const { exec } = require('child_process');
 const cors = require('cors');
 const path = require('path');
-const { exec } = require('child_process');
 
 const app = express();
-const port = 8080;
+const PORT = 8080;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const VAULT_CONTAINER = "vault-tactical-edge-demo_vault-server_1";
+// Store the leaked token in memory for the demo
+let leakedUserToken = null;
 
+// Helper function to execute shell commands
 const runCommand = (command) => {
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Exec error for command "${command}": ${stderr}`);
-        return reject({ message: stderr || error.message });
-      }
-      resolve({ message: stdout.trim() });
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                if (error) {
+                    console.error(`Command error: ${stderr}`);
+                    return reject(new Error(stderr));
+                }
+            }
+            resolve(stdout.trim());
+        });
     });
-  });
 };
 
-app.get('/api/state', async (req, res) => {
+// --- Health Check Endpoint ---
+// The frontend will poll this to know when the server is ready.
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
+
+
+// --- Story API Endpoints ---
+
+app.post('/api/story/disconnect', (req, res) => {
+    // This is a simulated action for the story. No actual command is needed.
+    res.json({ message: 'SATCOM link simulation toggled to DISCONNECTED.' });
+});
+
+app.post('/api/story/reconnect', (req, res) => {
+    // This is a simulated action for the story.
+    res.json({ message: 'SATCOM link simulation toggled to CONNECTED.' });
+});
+
+app.post('/api/story/login', async (req, res) => {
     try {
-        const vaultStatusCmd = `docker exec ${VAULT_CONTAINER} vault status -format=json`;
-        const result = await runCommand(vaultStatusCmd);
-        const vaultState = JSON.parse(result.message);
-        res.json({
-            vault_server: { status: vaultState.sealed ? 'sealed' : 'unsealed' }
-        });
+        const command = "docker exec vault-server-demo vault login -format=json -method=userpass username=insider password=password123";
+        const output = await runCommand(command);
+        const loginData = JSON.parse(output);
+        leakedUserToken = loginData.auth.client_token; // Save the token for the next steps
+        res.json({ command: "vault login -method=userpass username=insider password=...", output, token: leakedUserToken });
     } catch (error) {
-        if (error.message && error.message.includes("sealed")) {
-             res.json({ vault_server: { status: 'sealed' } });
-        } else {
-             res.status(500).json({ message: "Failed to get Vault status.", details: error.message || 'Unknown error' });
-        }
+        res.status(500).json({ message: `Login failed: ${error.message}` });
     }
 });
 
-app.post('/api/actions/:action', async (req, res) => {
-    const action = req.params.action;
+app.post('/api/story/steal', async (req, res) => {
+    if (!leakedUserToken) {
+        return res.status(400).json({ message: 'Error: Insider has not logged in yet.' });
+    }
     try {
-        let command, successMessage, responseData = {};
-
-        switch (action) {
-            case 'seal-vault':
-                command = `docker exec ${VAULT_CONTAINER} vault operator seal`;
-                successMessage = "Vault server is now SEALED. All secrets are inaccessible.";
-                break;
-            
-            case 'unseal-vault':
-                // In a real scenario, this would use the actual unseal key. For the demo, we use the dev auto-unseal logic.
-                // This is a placeholder for a more complex unseal flow if needed.
-                // For now, we can simulate by restarting the container which auto-unseals in dev mode.
-                command = `docker restart ${VAULT_CONTAINER}`;
-                successMessage = "Vault server is UNSEALED and operational.";
-                break;
-
-            case 'leak-secret':
-                // 1. Login as the 'insider' user
-                const loginCmd = `docker exec ${VAULT_CONTAINER} vault login -format=json -method=userpass username=insider password=password123`;
-                const loginResult = await runCommand(loginCmd);
-                const token = JSON.parse(loginResult.message).auth.client_token;
-                
-                // 2. Use the token to read the secret
-                const readCmd = `docker exec ${VAULT_CONTAINER} vault kv get -format=json -token=${token} secret/mission-app/config`;
-                const readResult = await runCommand(readCmd);
-                const secret = JSON.parse(readResult.message).data.data.api_key;
-
-                responseData = { leakedSecret: secret, userToken: token };
-                successMessage = "Insider threat has logged in and leaked a secret!";
-                break;
-
-            case 'revoke-secret':
-                const userToken = req.body.token;
-                if (!userToken) {
-                    return res.status(400).json({ message: "Token to revoke is required." });
-                }
-                // Revoke the specific token used by the insider
-                command = `docker exec ${VAULT_CONTAINER} vault token revoke ${userToken}`;
-                successMessage = "Leaked token has been revoked. Insider can no longer access secrets.";
-                break;
-
-            default:
-                return res.status(400).json({ message: "Invalid action specified." });
-        }
+        const command = `docker exec vault-server-demo vault kv get -format=json secret/mission/api-key`;
+        // We add the token via an environment variable for security, rather than a command-line flag.
+        const commandWithToken = `docker exec -e VAULT_TOKEN=${leakedUserToken} vault-server-demo vault kv get -format=json secret/mission/api-key`;
         
-        if (command) await runCommand(command);
-        res.json({ message: successMessage, ...responseData });
+        const output = await runCommand(commandWithToken);
+
+        // Send the response to the user immediately so they see the "win"
+        res.json({ command: "vault kv get secret/mission/api-key", output });
+
+        // After a delay, trigger the containment (token revocation) in the background
+        setTimeout(async () => {
+            try {
+                console.log(`[BACKGROUND] Detected leak. Revoking token: ${leakedUserToken}`);
+                const revokeCmd = `docker exec vault-server-demo vault token revoke ${leakedUserToken}`;
+                await runCommand(revokeCmd);
+                console.log(`[BACKGROUND] Successfully revoked token.`);
+                leakedUserToken = null; // Clear the token
+            } catch (revokeError) {
+                console.error(`[BACKGROUND] Failed to revoke token: ${revokeError.message}`);
+            }
+        }, 3000);
 
     } catch (error) {
-        res.status(500).json(error);
+        res.status(500).json({ message: `Steal failed: ${error.message}` });
     }
 });
 
-app.listen(port, () => {
-  console.log(`Demo controller listening at http://localhost:${port}`);
+
+app.listen(PORT, () => {
+    console.log(`Demo controller server running on http://localhost:${PORT}`);
 });

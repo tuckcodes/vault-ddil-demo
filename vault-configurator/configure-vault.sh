@@ -21,8 +21,10 @@ export VAULT_ADDR="http://vault-server:8200"
 
 echo "--- [Configurator] Applying initial Vault configuration ---"
 
-echo "[Configurator] Enabling userpass auth..."
-vault auth enable userpass
+echo "[Configurator] Enabling userpass auth (if not already enabled)..."
+# This command will fail if userpass is already enabled.
+# We add '|| true' to ignore the error and make the script idempotent.
+vault auth enable userpass || true
 
 echo "[Configurator] Creating mission-app-policy..."
 vault policy write mission-app-policy - <<EOF
@@ -35,9 +37,6 @@ echo "[Configurator] Creating user 'insider'..."
 vault write auth/userpass/users/insider \
     password='password123' \
     policies='mission-app-policy'
-
-echo "[Configurator] Enabling KV v2 secrets engine..."
-vault secrets enable -path=secret kv-v2
 
 echo "[Configurator] Writing secret mission data..."
 vault kv put secret/mission/api-key classified-key="C9A3-B7E1-A4D6-8B3F"
